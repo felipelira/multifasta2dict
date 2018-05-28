@@ -1,0 +1,85 @@
+#!/usr/bin/env python
+
+# Concatenate all multifasta files in an unique file and create a dictionary (table with names/IDs and description of the sequence
+# multifasta2dict.py [directory containing faa files]
+
+# creates a text file containing {gene/protein_ID: genome_accession}
+
+import os
+import sys
+import csv
+import string
+import pandas as pd
+from Bio import SeqIO
+
+# Checks if in proper number of arguments are passed gives instructions on proper use.
+def argsCheck(numArgs):
+	if len(sys.argv) < numArgs or len(sys.argv) > numArgs:
+		#print "\nConcatenates multifasta files to one unique file and create a dictionary"
+		print "\nYou missed something."
+		print "Usage:\n\t" + sys.argv[0] + " [PATH/TO/directory] [output_name]\n"
+		#print "\tDirectory must contain files with <<.faa>> extention\n"
+		exit(1) # Aborts program. (exit(1) indicates that an error occurred)
+
+argsCheck(3) # Checks if the number of arguments are correct.
+
+
+# store the local directory where user is working
+local = os.getcwd()
+
+# directory containing the files to be concatenated
+inDir = sys.argv[1]
+out = sys.argv[2]
+
+outName = out + '.fasta'
+dictName = out + '.dict'
+
+os.chdir(inDir)
+
+# Move to directory where the data is stored
+os.chdir(os.path.join(inDir))
+
+# Store all multifasta sequences in a dictionary
+
+multiDict = {}
+blastDict = {}
+
+multi_faa = open(outName, 'w')
+
+
+def tagFasta(fasta):
+
+	genomeID = fasta.replace('.faa', '')
+	for record in SeqIO.parse(open(fasta, 'r'), 'fasta'):
+		name = record.id + '|' + genomeID
+		multi_faa.write((">%s\n%s\n" % (name, record.seq)))
+
+def multi2dict(multi):
+	genomeID = multi.replace('.faa', '')
+	for record in SeqIO.parse(open(multi, 'r'), 'fasta'):
+		name = record.id + '|' + genomeID
+		if name not in multiDict:		
+			multiDict[name] = genomeID
+		else:
+			continue
+
+for fasta in os.listdir('.'):
+	if fasta.endswith('.faa'):
+		tagFasta(fasta)
+
+for multifasta in os.listdir('.'):
+	if multifasta.endswith('.faa'):
+		multi2dict(multifasta)
+
+outFasta = open(dictName, 'w')
+for k, v in multiDict.iteritems():
+	outFasta.write("%s\t%s\n" % (k, v))
+outFasta.close()
+print '\nFile multifasta.dict created at', os.path.join(inDir, 'dict_multifasta.tab')
+
+print 'Congratulations! You are a beatiful genius.'
+#print len(multiDict), 'sequeces saved in the directory', inDir + '/' 
+#print len(multiDict), 'sequeces stored in the table file', inDir  + '/\n' 
+
+os.chdir(local)
+
